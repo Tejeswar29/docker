@@ -1,0 +1,50 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = "teja189"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git 'https://github.com/Tejeswar29/docker.git'
+            }
+        }
+
+        stage('Build App') {
+            steps {
+                sh 'mvn clean package -DskipTests'   // or npm build, etc.
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh """
+                      docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} .
+                    """
+                }
+            }
+        }
+
+        // Optional: push to Docker Hub
+        stage('Login & Push to Docker Hub') {
+            when {
+                expression { return false } // change to true when ready
+            }
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'teja189',
+                    passwordVariable: 'Tejeswar@78'
+                )]) {
+                    sh """
+                      echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                      docker push ${IMAGE_NAME}:${BUILD_NUMBER}
+                    """
+                }
+            }
+        }
+    }
+}
